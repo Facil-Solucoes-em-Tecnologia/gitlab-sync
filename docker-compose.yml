@@ -1,0 +1,44 @@
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: gitlab_stats
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d gitlab_stats"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  grafana:
+    image: grafana/grafana-oss:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - db
+    volumes:
+      - grafana_data:/var/lib/grafana
+
+  worker:
+    build: .
+    environment:
+      - GITLAB_URL=${GITLAB_URL}
+      - GITLAB_TOKEN=${GITLAB_TOKEN}
+      - PROJECT_ID=${PROJECT_ID}
+      - POSTGRES_DB=gitlab_stats
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - DB_HOST=db
+      - SYNC_TIME=23:59
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  grafana_data:

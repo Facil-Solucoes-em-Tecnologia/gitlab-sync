@@ -1,0 +1,4 @@
+python-gitlab==4.12.1
+psycopg2-binary==2.9.10
+schedule==1.2.2
+python-dateutil==2.9.0.post0
