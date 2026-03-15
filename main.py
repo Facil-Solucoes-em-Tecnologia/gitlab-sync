@@ -13,14 +13,12 @@ DB_NAME = os.getenv('POSTGRES_DB')
 DB_USER = os.getenv('POSTGRES_USER')
 DB_PASS = os.getenv('POSTGRES_PASSWORD')
 DB_HOST = os.getenv('DB_HOST', 'db')
-SYNC_TIME = os.getenv('SYNC_TIME', '23:59') # Horário da execução diária
+SYNC_TIME = os.getenv('SYNC_TIME', '23:59')
 
 def job():
-    # Inicializar Repositórios
     gitlab_repo = GitLabRepository(GITLAB_URL, GITLAB_TOKEN, PROJECT_ID)
     db_repo = DatabaseRepository(DB_HOST, DB_NAME, DB_USER, DB_PASS)
 
-    # Inicializar e Executar Serviço
     sync_service = SyncService(gitlab_repo, db_repo)
     
     try:
@@ -32,8 +30,7 @@ def main():
     print(f"Agendando tarefa diária para as {SYNC_TIME}")
     schedule.every().day.at(SYNC_TIME).do(job)
 
-    # Executar uma vez no início (opcional, para testar)
-    # job()
+    job()
 
     while True:
         schedule.run_pending()
