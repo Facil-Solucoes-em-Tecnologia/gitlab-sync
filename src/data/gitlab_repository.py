@@ -11,7 +11,33 @@ class GitLabRepository:
     def _get_label_value(self, labels: List[str], prefix: str) -> str:
         for label in labels:
             if label.startswith(prefix):
-                return label.split('::')[1] if '::' in label else label[len(prefix):].strip()
+                # Tenta primeiro com '::' (padrão recomendado)
+                if '::' in label:
+                    parts = label.split('::', 1)
+                    return parts[1].strip() if len(parts) > 1 else None
+                
+                # Fallback: se não tiver '::' mas começar com o prefixo, 
+                # pode estar usando ':' ou apenas o prefixo com um espaço.
+                # Remove o prefixo e retorna o resto.
+                # Se o prefixo for 'workload::' e a label for 'workload:val', 
+                # o startswith falharia. Vamos melhorar o prefixo.
+                pass
+
+        # Nova lógica mais robusta: procurar o prefixo base sem os separadores
+        base_prefix = prefix.rstrip(':').rstrip()
+        for label in labels:
+            if label.startswith(base_prefix):
+                # Tenta encontrar o separador após o prefixo base
+                # Pode ser '::', ':', ' ' ou o próprio label se for apenas o prefixo
+                rest = label[len(base_prefix):]
+                if rest.startswith('::'):
+                    return rest[2:].strip()
+                if rest.startswith(':'):
+                    return rest[1:].strip()
+                if rest.startswith(' '):
+                    return rest[1:].strip()
+                # Se não houver separador conhecido, retorna o resto se não for vazio
+                return rest.strip() if rest else None
         return None
 
     def get_issues(self) -> List[IssueSnapshot]:
@@ -36,6 +62,13 @@ class GitLabRepository:
                 assignee_username = issue.assignees[0]['username']
                 assignee_name = issue.assignees[0]['name']
 
+            workload_status = self._get_label_value(issue.labels, 'workload::')
+            if not workload_status:
+                if 'done' in issue.labels:
+                    workload_status = 'done'
+                elif 'open' in issue.labels:
+                    workload_status = 'open'
+
             snapshots.append(IssueSnapshot(
                 issue_id=issue.id,
                 issue_iid=issue.iid,
@@ -44,7 +77,7 @@ class GitLabRepository:
                 state=issue.state,
                 assignee_username=assignee_username,
                 assignee_name=assignee_name,
-                workload_status=self._get_label_value(issue.labels, 'workload::'),
+                workload_status=workload_status,
                 sprint_name=sprint,
                 task_type=self._get_label_value(issue.labels, 'type::'),
                 points=points,
