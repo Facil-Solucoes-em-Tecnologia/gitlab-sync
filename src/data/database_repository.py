@@ -27,7 +27,7 @@ class DatabaseRepository:
                         state TEXT,
                         assignee_username TEXT,
                         assignee_name TEXT,
-                        workload_status TEXT,
+                        workflow_status TEXT,
                         sprint_name TEXT,
                         task_type TEXT,
                         points INTEGER DEFAULT 0,
@@ -53,7 +53,7 @@ class DatabaseRepository:
                 cur.execute("""
                     INSERT INTO fact_issue_daily (
                         snapshot_date, issue_id, issue_iid, project_id, title, state, 
-                        assignee_username, assignee_name, workload_status, sprint_name, 
+                        assignee_username, assignee_name, workflow_status, sprint_name, 
                         task_type, points, milestone_title, updated_at_gitlab, is_epic
                     ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     ON CONFLICT (snapshot_date, issue_id) DO UPDATE SET
@@ -61,7 +61,7 @@ class DatabaseRepository:
                         state = EXCLUDED.state,
                         assignee_username = EXCLUDED.assignee_username,
                         assignee_name = EXCLUDED.assignee_name,
-                        workload_status = EXCLUDED.workload_status,
+                        workflow_status = EXCLUDED.workflow_status,
                         sprint_name = EXCLUDED.sprint_name,
                         task_type = EXCLUDED.task_type,
                         points = EXCLUDED.points,
@@ -69,9 +69,9 @@ class DatabaseRepository:
                         updated_at_gitlab = EXCLUDED.updated_at_gitlab,
                         is_epic = EXCLUDED.is_epic
                 """, (
-                    issue.snapshot_date, issue.issue_id, issue.issue_iid, issue.project_id, 
-                    issue.title, issue.state, issue.assignee_username, issue.assignee_name, 
-                    issue.workload_status, issue.sprint_name, issue.task_type, issue.points, 
+                    issue.snapshot_date, issue.issue_id, issue.issue_iid, issue.project_id,
+                    issue.title, issue.state, issue.assignee_username, issue.assignee_name,
+                    issue.workflow_status, issue.sprint_name, issue.task_type, issue.points,
                     issue.milestone_title, issue.updated_at_gitlab, issue.is_epic
                 ))
                 conn.commit()

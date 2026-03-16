@@ -11,7 +11,7 @@ class IssueSnapshot:
     state: str
     assignee_username: Optional[str]
     assignee_name: Optional[str]
-    workload_status: Optional[str]
+    workflow_status: Optional[str]
     sprint_name: Optional[str]
     task_type: Optional[str]
     points: int

@@ -8,12 +8,18 @@ class GitLabRepository:
         self.gl = gitlab.Gitlab(url, private_token=token)
         self.project = self.gl.projects.get(project_id)
 
-    def _get_label_value(self, labels: List[str], prefix: str) -> str:
+    def _get_label_name(self, label) -> str:
+        if isinstance(label, dict):
+            return label.get('name', '')
+        return str(label)
+
+    def _get_label_value(self, labels: List, prefix: str) -> str:
         for label in labels:
-            if label.startswith(prefix):
+            label_name = self._get_label_name(label)
+            if label_name.startswith(prefix):
                 # Tenta primeiro com '::' (padrão recomendado)
-                if '::' in label:
-                    parts = label.split('::', 1)
+                if '::' in label_name:
+                    parts = label_name.split('::', 1)
                     return parts[1].strip() if len(parts) > 1 else None
                 
                 # Fallback: se não tiver '::' mas começar com o prefixo, 
@@ -26,10 +32,11 @@ class GitLabRepository:
         # Nova lógica mais robusta: procurar o prefixo base sem os separadores
         base_prefix = prefix.rstrip(':').rstrip()
         for label in labels:
-            if label.startswith(base_prefix):
+            label_name = self._get_label_name(label)
+            if label_name.startswith(base_prefix):
                 # Tenta encontrar o separador após o prefixo base
                 # Pode ser '::', ':', ' ' ou o próprio label se for apenas o prefixo
-                rest = label[len(base_prefix):]
+                rest = label_name[len(base_prefix):]
                 if rest.startswith('::'):
                     return rest[2:].strip()
                 if rest.startswith(':'):
@@ -44,6 +51,8 @@ class GitLabRepository:
         issues = self.project.issues.list(all=True)
         snapshots = []
         for issue in issues:
+            label_names = [self._get_label_name(l) for l in issue.labels]
+            
             points_str = self._get_label_value(issue.labels, 'points::')
             points = 0
             try:
@@ -62,12 +71,12 @@ class GitLabRepository:
                 assignee_username = issue.assignees[0]['username']
                 assignee_name = issue.assignees[0]['name']
 
-            workload_status = self._get_label_value(issue.labels, 'workload::')
-            if not workload_status:
-                if 'done' in issue.labels:
-                    workload_status = 'done'
-                elif 'open' in issue.labels:
-                    workload_status = 'open'
+            workflow_status = self._get_label_value(issue.labels, 'workflow::')
+            if not workflow_status:
+                if 'done' in label_names or 'closed' in label_names or 'close' in label_names:
+                    workflow_status = 'done'
+                elif 'open' in label_names:
+                    workflow_status = 'open'
 
             snapshots.append(IssueSnapshot(
                 issue_id=issue.id,
@@ -77,13 +86,13 @@ class GitLabRepository:
                 state=issue.state,
                 assignee_username=assignee_username,
                 assignee_name=assignee_name,
-                workload_status=workload_status,
+                workflow_status=workflow_status,
                 sprint_name=sprint,
                 task_type=self._get_label_value(issue.labels, 'type::'),
                 points=points,
                 milestone_title=issue.milestone['title'] if issue.milestone else None,
                 updated_at_gitlab=issue.updated_at,
-                is_epic='epico' in issue.labels or 'epic' in issue.labels
+                is_epic='epico' in label_names or 'epic' in label_names
             ))
         return snapshots
 
