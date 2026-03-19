@@ -19,7 +19,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copia o código da aplicação
-COPY main.py .
+COPY main.py recover_history.py ./
 COPY src/ ./src/
 
 # Comando para rodar a aplicação
