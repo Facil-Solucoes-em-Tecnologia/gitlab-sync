@@ -1,9 +1,13 @@
 import os
 import time
 import schedule
+from dotenv import load_dotenv
 from src.data.gitlab_repository import GitLabRepository
 from src.data.database_repository import DatabaseRepository
 from src.services.sync_service import SyncService
+
+# Carrega variáveis do arquivo .env
+load_dotenv()
 
 # Configurações via variáveis de ambiente
 GITLAB_URL = os.getenv('GITLAB_URL')

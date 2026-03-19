@@ -98,13 +98,24 @@ class GitLabRepository:
         return snapshots
 
     def get_git_metrics(self, snapshot_date: date) -> List[GitMetric]:
-        since = datetime.combine(snapshot_date, datetime.min.time()).isoformat()
-        until = datetime.combine(snapshot_date, datetime.max.time()).isoformat()
+        # Formato ISO 8601 (YYYY-MM-DDTHH:MM:SSZ) para garantir UTC
+        since = datetime.combine(snapshot_date, datetime.min.time()).strftime('%Y-%m-%dT00:00:00Z')
+        until = datetime.combine(snapshot_date, datetime.max.time()).strftime('%Y-%m-%dT23:59:59Z')
         
+        print(f"DEBUG: Buscando commits entre {since} e {until}...")
+        
+        # O parâmetro 'all' no gitlab-python deve ser passado dentro de query_parameters 
+        # ou como argumento se a versão suportar. 'get_all=True' ativa a paginação automática.
         commits = self.project.commits.list(since=since, until=until, get_all=True, query_parameters={'all': True})
         metrics_dict: Dict[str, GitMetric] = {}
         
         for commit in commits:
+            # Garante que o commit pertence ao dia solicitado (filtro adicional de segurança)
+            # O Gitlab pode retornar commits próximos se houver problemas de timezone
+            commit_date = datetime.strptime(commit.created_at[:10], '%Y-%m-%d').date()
+            if commit_date != snapshot_date:
+                continue
+
             username = commit.author_email
             if username not in metrics_dict:
                 metrics_dict[username] = GitMetric(developer_username=username, snapshot_date=snapshot_date)

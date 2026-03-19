@@ -1,11 +1,15 @@
 import os
 import sys
 from datetime import date, timedelta
+from dotenv import load_dotenv
 from src.data.gitlab_repository import GitLabRepository
 from src.data.database_repository import DatabaseRepository
 from src.services.sync_service import SyncService
 
 def main():
+    # Carrega variáveis do arquivo .env
+    load_dotenv()
+
     GITLAB_URL = os.getenv('GITLAB_URL')
     GITLAB_TOKEN = os.getenv('GITLAB_TOKEN')
     PROJECT_ID = int(os.getenv('PROJECT_ID', 0))
@@ -22,17 +26,23 @@ def main():
     db_repo = DatabaseRepository(DB_HOST, DB_NAME, DB_USER, DB_PASS)
     sync_service = SyncService(gitlab_repo, db_repo)
 
+    # Inicia a partir da data em que os problemas de duplicação foram observados
     start_date = date(2026, 3, 2)
     end_date = date.today()
 
     current_date = start_date
     while current_date <= end_date:
-        print(f"--- Sincronizando dados históricos para {current_date} ---")
+        print(f"\n=== FORÇANDO REFRESH: {current_date} ===")
+        print(f"Limpando dados antigos e recarregando do GitLab...")
         try:
+            # O método run_daily_sync agora já faz o delete preventivo dos commits
+            # garantindo que apenas a carga atual do GitLab permaneça no banco.
             sync_service.run_daily_sync(current_date)
         except Exception as e:
-            print(f"Erro ao sincronizar {current_date}: {e}")
+            print(f"Erro ao processar {current_date}: {e}")
         current_date += timedelta(days=1)
+
+    print("\nRecuperação de histórico concluída.")
 
 if __name__ == "__main__":
     main()

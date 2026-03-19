@@ -22,6 +22,11 @@ class SyncService:
 
         # 2. Sincronizar Métricas de Git
         print(f"Extraindo métricas de Git para {target_date}...")
+        
+        # Remove métricas antigas do dia para evitar dados duplicados ou fantasmas 
+        # (caso o desenvolvedor não tenha mais commits no dia após a nova filtragem)
+        self.db_repo.delete_git_metrics_for_date(target_date)
+        
         metrics = self.gitlab_repo.get_git_metrics(target_date)
         for metric in metrics:
             self.db_repo.upsert_git_metric(metric)

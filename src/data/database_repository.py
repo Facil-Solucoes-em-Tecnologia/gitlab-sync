@@ -1,4 +1,5 @@
 import psycopg2
+from datetime import date
 from src.domain.models import IssueSnapshot, GitMetric
 
 class DatabaseRepository:
@@ -79,6 +80,11 @@ class DatabaseRepository:
     def upsert_git_metric(self, metric: GitMetric):
         with self._get_connection() as conn:
             with conn.cursor() as cur:
+                # Primeiro, remove qualquer dado existente para esse desenvolvedor nesse dia
+                # para garantir que se ele não tiver mais commits (ex: se o script rodar de novo e filtrar melhor),
+                # os dados antigos não fiquem sujos. No entanto, o loop no Service só chama upsert se houver métricas.
+                # Então o ideal é deletar tudo do dia ANTES de começar a inserção para aquele dia.
+                
                 cur.execute("""
                     INSERT INTO fact_git_daily (
                         snapshot_date, developer_username, commits_count, merges_count
@@ -90,4 +96,10 @@ class DatabaseRepository:
                     metric.snapshot_date, metric.developer_username, 
                     metric.commits_count, metric.merges_count
                 ))
+                conn.commit()
+
+    def delete_git_metrics_for_date(self, snapshot_date: date):
+        with self._get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("DELETE FROM fact_git_daily WHERE snapshot_date = %s", (snapshot_date,))
                 conn.commit()
