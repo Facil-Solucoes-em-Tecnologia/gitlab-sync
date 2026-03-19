@@ -47,7 +47,7 @@ class GitLabRepository:
                 return rest.strip() if rest else None
         return None
 
-    def get_issues(self) -> List[IssueSnapshot]:
+    def get_issues(self, snapshot_date: date) -> List[IssueSnapshot]:
         issues = self.project.issues.list(all=True)
         snapshots = []
         for issue in issues:
@@ -92,7 +92,8 @@ class GitLabRepository:
                 points=points,
                 milestone_title=issue.milestone['title'] if issue.milestone else None,
                 updated_at_gitlab=issue.updated_at,
-                is_epic='epico' in label_names or 'epic' in label_names
+                is_epic='epico' in label_names or 'epic' in label_names,
+                snapshot_date=snapshot_date
             ))
         return snapshots
 
@@ -100,7 +101,7 @@ class GitLabRepository:
         since = datetime.combine(snapshot_date, datetime.min.time()).isoformat()
         until = datetime.combine(snapshot_date, datetime.max.time()).isoformat()
         
-        commits = self.project.commits.list(since=since, until=until, all=True)
+        commits = self.project.commits.list(since=since, until=until, get_all=True, query_parameters={'all': True})
         metrics_dict: Dict[str, GitMetric] = {}
         
         for commit in commits:

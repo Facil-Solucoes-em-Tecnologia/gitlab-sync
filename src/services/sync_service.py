@@ -11,15 +11,16 @@ class SyncService:
         print("Iniciando sincronização diária...")
         self.db_repo.init_tables()
         
+        today = date.today()
+
         # 1. Sincronizar Issues
-        print("Extraindo issues do GitLab...")
-        issues = self.gitlab_repo.get_issues()
+        print(f"Extraindo issues do GitLab para {today}...")
+        issues = self.gitlab_repo.get_issues(today)
         for issue in issues:
             self.db_repo.upsert_issue(issue)
         print(f"{len(issues)} issues processadas.")
 
         # 2. Sincronizar Métricas de Git
-        today = date.today()
         print(f"Extraindo métricas de Git para {today}...")
         metrics = self.gitlab_repo.get_git_metrics(today)
         for metric in metrics:
