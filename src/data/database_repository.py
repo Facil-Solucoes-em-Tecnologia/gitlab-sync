@@ -17,6 +17,7 @@ class DatabaseRepository:
     def init_tables(self):
         with self._get_connection() as conn:
             with conn.cursor() as cur:
+                # Criação inicial das tabelas
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS fact_issue_daily (
                         id SERIAL PRIMARY KEY,
@@ -43,9 +44,16 @@ class DatabaseRepository:
                         developer_username TEXT NOT NULL,
                         commits_count INTEGER DEFAULT 0,
                         merges_count INTEGER DEFAULT 0,
+                        additions INTEGER DEFAULT 0,
+                        deletions INTEGER DEFAULT 0,
                         UNIQUE (snapshot_date, developer_username)
                     );
                 """)
+                
+                # Migração para adicionar colunas caso as tabelas já existam sem elas
+                cur.execute("ALTER TABLE fact_git_daily ADD COLUMN IF NOT EXISTS additions INTEGER DEFAULT 0;")
+                cur.execute("ALTER TABLE fact_git_daily ADD COLUMN IF NOT EXISTS deletions INTEGER DEFAULT 0;")
+                
                 conn.commit()
 
     def upsert_issue(self, issue: IssueSnapshot):
@@ -87,14 +95,17 @@ class DatabaseRepository:
                 
                 cur.execute("""
                     INSERT INTO fact_git_daily (
-                        snapshot_date, developer_username, commits_count, merges_count
-                    ) VALUES (%s, %s, %s, %s)
+                        snapshot_date, developer_username, commits_count, merges_count, additions, deletions
+                    ) VALUES (%s, %s, %s, %s, %s, %s)
                     ON CONFLICT (snapshot_date, developer_username) DO UPDATE SET
                         commits_count = EXCLUDED.commits_count,
-                        merges_count = EXCLUDED.merges_count
+                        merges_count = EXCLUDED.merges_count,
+                        additions = EXCLUDED.additions,
+                        deletions = EXCLUDED.deletions
                 """, (
                     metric.snapshot_date, metric.developer_username, 
-                    metric.commits_count, metric.merges_count
+                    metric.commits_count, metric.merges_count,
+                    metric.additions, metric.deletions
                 ))
                 conn.commit()
 

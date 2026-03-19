@@ -104,9 +104,13 @@ class GitLabRepository:
         
         print(f"DEBUG: Buscando commits entre {since} e {until}...")
         
-        # O parâmetro 'all' no gitlab-python deve ser passado dentro de query_parameters 
-        # ou como argumento se a versão suportar. 'get_all=True' ativa a paginação automática.
-        commits = self.project.commits.list(since=since, until=until, get_all=True, query_parameters={'all': True})
+        # O parâmetro 'with_stats=True' solicita ao GitLab que retorne as estatísticas de adições/remoções
+        commits = self.project.commits.list(
+            since=since, 
+            until=until, 
+            get_all=True, 
+            query_parameters={'all': True, 'with_stats': 'true'}
+        )
         metrics_dict: Dict[str, GitMetric] = {}
         
         for commit in commits:
@@ -123,5 +127,10 @@ class GitLabRepository:
             metrics_dict[username].commits_count += 1
             if len(commit.parent_ids) > 1:
                 metrics_dict[username].merges_count += 1
+            
+            # Adiciona stats (linhas adicionadas e removidas)
+            if hasattr(commit, 'stats'):
+                metrics_dict[username].additions += commit.stats.get('additions', 0)
+                metrics_dict[username].deletions += commit.stats.get('deletions', 0)
         
         return list(metrics_dict.values())

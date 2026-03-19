@@ -26,8 +26,8 @@ def main():
     db_repo = DatabaseRepository(DB_HOST, DB_NAME, DB_USER, DB_PASS)
     sync_service = SyncService(gitlab_repo, db_repo)
 
-    # Inicia a partir da data em que os problemas de duplicação foram observados
-    start_date = date(2026, 3, 2)
+    # Inicia a partir de 01 de março conforme solicitado
+    start_date = date(2026, 3, 1)
     end_date = date.today()
 
     current_date = start_date

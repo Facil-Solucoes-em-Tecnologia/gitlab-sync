@@ -25,4 +25,6 @@ class GitMetric:
     developer_username: str
     commits_count: int = 0
     merges_count: int = 0
+    additions: int = 0
+    deletions: int = 0
     snapshot_date: date = field(default_factory=date.today)
